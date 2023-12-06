@@ -38,6 +38,7 @@ export default function Chat(props: { apiKeyApp: string }) {
   // Loading state
   const [loading, setLoading] = useState<boolean>(false);
   const [chatStarted, setChatStarted] = useState<boolean>(false);
+  const [thread, setThread] = useState<string>('');
 
   // API Key
   // const [apiKey, setApiKey] = useState<string>(apiKeyApp);
@@ -81,7 +82,7 @@ export default function Chat(props: { apiKeyApp: string }) {
     setOutputCode(' ');
     setLoading(true);
     const controller = new AbortController();
-    var threadid = '';
+    var threadid = thread;
     // -------------- Init ---------------
     if (!chatStarted) {
       const res = await fetch(
@@ -98,6 +99,7 @@ export default function Chat(props: { apiKeyApp: string }) {
 
       const rawBody = await res.json();
       threadid = rawBody.thread_id;
+      setThread(threadid);
       setChatStarted(true);
     }
 
