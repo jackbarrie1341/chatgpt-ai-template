@@ -22,6 +22,7 @@ import {
 } from '@chakra-ui/react';
 import { useEffect, useState } from 'react';
 import { MdAutoAwesome, MdBolt, MdEdit, MdPerson } from 'react-icons/md';
+import { threadId } from 'worker_threads';
 import Bg from '../public/img/chat/bg-image.png';
 
 export default function Chat(props: { apiKeyApp: string }) {
@@ -36,6 +37,7 @@ export default function Chat(props: { apiKeyApp: string }) {
   const [model, setModel] = useState<OpenAIModel>('gpt-3.5-turbo');
   // Loading state
   const [loading, setLoading] = useState<boolean>(false);
+  const [chatStarted, setChatStarted] = useState<boolean>(false);
 
   // API Key
   // const [apiKey, setApiKey] = useState<string>(apiKeyApp);
@@ -63,12 +65,7 @@ export default function Chat(props: { apiKeyApp: string }) {
     setInputOnSubmit(inputCode);
 
     // Chat post conditions(maximum number of characters, valid message etc.)
-    const maxCodeLength = model === 'gpt-3.5-turbo' ? 700 : 700;
-
-    if (!apiKeyApp?.includes('sk-') && !apiKey?.includes('sk-')) {
-      alert('Please enter an API key.');
-      return;
-    }
+    const maxCodeLength = model === 'gpt-3.5-turbo' ? 1600 : 1600;
 
     if (!inputCode) {
       alert('Please enter your message.');
@@ -84,33 +81,53 @@ export default function Chat(props: { apiKeyApp: string }) {
     setOutputCode(' ');
     setLoading(true);
     const controller = new AbortController();
-    const body: ChatBody = {
-      inputCode,
-      model,
-      apiKey,
+    var threadid = '';
+    // -------------- Init ---------------
+    if (!chatStarted) {
+      const res = await fetch(
+        'https://custom-gpts-to-website--jackbarrie1341.repl.co/start',
+        { method: 'GET' },
+      );
+      if (!res.ok) {
+        setLoading(false);
+        if (res) {
+          alert('Something went wrong INITIALISING');
+        }
+        return;
+      }
+
+      const rawBody = await res.json();
+      threadid = rawBody.thread_id;
+      setChatStarted(true);
+    }
+
+    const req = {
+      message: inputCode,
+      thread_id: threadid,
     };
 
     // -------------- Fetch --------------
-    const response = await fetch('/api/chatAPI', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
+    const response = await fetch(
+      'https://custom-gpts-to-website--jackbarrie1341.repl.co/chatnew',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        signal: controller.signal,
+        body: JSON.stringify(req),
       },
-      signal: controller.signal,
-      body: JSON.stringify(body),
-    });
+    );
 
     if (!response.ok) {
       setLoading(false);
       if (response) {
-        alert(
-          'Something went wrong went fetching from the API. Make sure to use a valid API key.',
-        );
+        alert('Something went wrong went fetching from the API.');
       }
       return;
     }
 
-    const data = response.body;
+    const data = await response.json();
 
     if (!data) {
       setLoading(false);
@@ -118,17 +135,19 @@ export default function Chat(props: { apiKeyApp: string }) {
       return;
     }
 
-    const reader = data.getReader();
-    const decoder = new TextDecoder();
-    let done = false;
+    setOutputCode(data.response);
 
-    while (!done) {
-      setLoading(true);
-      const { value, done: doneReading } = await reader.read();
-      done = doneReading;
-      const chunkValue = decoder.decode(value);
-      setOutputCode((prevCode) => prevCode + chunkValue);
-    }
+    // const reader = data.getReader();
+    // const decoder = new TextDecoder();
+    // let done = false;
+
+    // while (!done) {
+    //   setLoading(true);
+    //   const { value, done: doneReading } = await reader.read();
+    //   done = doneReading;
+    //   const chunkValue = decoder.decode(value);
+    //   setOutputCode((prevCode) => prevCode + chunkValue);
+    // }
 
     setLoading(false);
   };
@@ -185,103 +204,7 @@ export default function Chat(props: { apiKeyApp: string }) {
             w="max-content"
             mb="20px"
             borderRadius="60px"
-          >
-            <Flex
-              cursor={'pointer'}
-              transition="0.3s"
-              justify={'center'}
-              align="center"
-              bg={model === 'gpt-3.5-turbo' ? buttonBg : 'transparent'}
-              w="174px"
-              h="70px"
-              boxShadow={model === 'gpt-3.5-turbo' ? buttonShadow : 'none'}
-              borderRadius="14px"
-              color={textColor}
-              fontSize="18px"
-              fontWeight={'700'}
-              onClick={() => setModel('gpt-3.5-turbo')}
-            >
-              <Flex
-                borderRadius="full"
-                justify="center"
-                align="center"
-                bg={bgIcon}
-                me="10px"
-                h="39px"
-                w="39px"
-              >
-                <Icon
-                  as={MdAutoAwesome}
-                  width="20px"
-                  height="20px"
-                  color={iconColor}
-                />
-              </Flex>
-              GPT-3.5
-            </Flex>
-            <Flex
-              cursor={'pointer'}
-              transition="0.3s"
-              justify={'center'}
-              align="center"
-              bg={model === 'gpt-4' ? buttonBg : 'transparent'}
-              w="164px"
-              h="70px"
-              boxShadow={model === 'gpt-4' ? buttonShadow : 'none'}
-              borderRadius="14px"
-              color={textColor}
-              fontSize="18px"
-              fontWeight={'700'}
-              onClick={() => setModel('gpt-4')}
-            >
-              <Flex
-                borderRadius="full"
-                justify="center"
-                align="center"
-                bg={bgIcon}
-                me="10px"
-                h="39px"
-                w="39px"
-              >
-                <Icon
-                  as={MdBolt}
-                  width="20px"
-                  height="20px"
-                  color={iconColor}
-                />
-              </Flex>
-              GPT-4
-            </Flex>
-          </Flex>
-
-          <Accordion color={gray} allowToggle w="100%" my="0px" mx="auto">
-            <AccordionItem border="none">
-              <AccordionButton
-                borderBottom="0px solid"
-                maxW="max-content"
-                mx="auto"
-                _hover={{ border: '0px solid', bg: 'none' }}
-                _focus={{ border: '0px solid', bg: 'none' }}
-              >
-                <Box flex="1" textAlign="left">
-                  <Text color={gray} fontWeight="500" fontSize="sm">
-                    No plugins added
-                  </Text>
-                </Box>
-                <AccordionIcon color={gray} />
-              </AccordionButton>
-              <AccordionPanel mx="auto" w="max-content" p="0px 0px 10px 0px">
-                <Text
-                  color={gray}
-                  fontWeight="500"
-                  fontSize="sm"
-                  textAlign={'center'}
-                >
-                  This is a cool text example.
-                </Text>
-              </AccordionPanel>
-            </AccordionItem>
-          </Accordion>
+          ></Flex>
         </Flex>
         {/* Main Box */}
         <Flex
@@ -392,8 +315,7 @@ export default function Chat(props: { apiKeyApp: string }) {
             _hover={{
               boxShadow:
                 '0px 21px 27px -10px rgba(96, 60, 255, 0.48) !important',
-              bg:
-                'linear-gradient(15.46deg, #4A25E1 26.3%, #7B5AFF 86.4%) !important',
+              bg: 'linear-gradient(15.46deg, #4A25E1 26.3%, #7B5AFF 86.4%) !important',
               _disabled: {
                 bg: 'linear-gradient(15.46deg, #4A25E1 26.3%, #7B5AFF 86.4%)',
               },
@@ -403,28 +325,6 @@ export default function Chat(props: { apiKeyApp: string }) {
           >
             Submit
           </Button>
-        </Flex>
-
-        <Flex
-          justify="center"
-          mt="20px"
-          direction={{ base: 'column', md: 'row' }}
-          alignItems="center"
-        >
-          <Text fontSize="xs" textAlign="center" color={gray}>
-            Free Research Preview. ChatGPT may produce inaccurate information
-            about people, places, or facts.
-          </Text>
-          <Link href="https://help.openai.com/en/articles/6825453-chatgpt-release-notes">
-            <Text
-              fontSize="xs"
-              color={textColor}
-              fontWeight="500"
-              textDecoration="underline"
-            >
-              ChatGPT May 12 Version
-            </Text>
-          </Link>
         </Flex>
       </Flex>
     </Flex>

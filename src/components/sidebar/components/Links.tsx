@@ -202,7 +202,7 @@ export function SidebarLinks(props: SidebarLinksProps) {
                     activeRoute(route.path.toLowerCase()) ? '22px' : '26px'
                   }
                 >
-                  {route.name === 'Chat UI' ? (
+                  {route.name === 'Ops Manual' ? (
                     <NavLink
                       href={
                         route.layout ? route.layout + route.path : route.path
@@ -285,19 +285,7 @@ export function SidebarLinks(props: SidebarLinksProps) {
                       <Link
                         isExternal
                         href="https://horizon-ui.com/ai-template"
-                      >
-                        <Badge
-                          display={{ base: 'flex', lg: 'none', xl: 'flex' }}
-                          colorScheme="brand"
-                          borderRadius="25px"
-                          color="brand.500"
-                          textTransform={'none'}
-                          letterSpacing="0px"
-                          px="8px"
-                        >
-                          PRO
-                        </Badge>
-                      </Link>
+                      ></Link>
                     </Flex>
                   )}
                 </HStack>

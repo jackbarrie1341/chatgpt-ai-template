@@ -7,7 +7,7 @@ export const config = {
 
 const handler = async (req: Request): Promise<Response> => {
   try {
-    const { inputCode, model, apiKey } = (await req.json()) as ChatBody;
+    const { inputCode, model, apiKey } = await req.json();
     let apiKeyFinal;
 
     if (apiKey) {
